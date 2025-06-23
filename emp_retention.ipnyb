@@ -1,0 +1,204 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Employee Attrition Prediction Using Logistic Regression"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "Dataset is downloaded from Kaggle. Link: https://www.kaggle.com/giripujar/hr-analytics"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from sklearn.model_selection import train_test_split\n",
+    "from sklearn.linear_model import LogisticRegression\n",
+    "from sklearn.preprocessing import StandardScaler\n",
+    "from sklearn.metrics import accuracy_score\n",
+    "from sklearn.preprocessing import LabelEncoder\n",
+    "import pandas as pd\n",
+    "import seaborn as sns\n",
+    "import matplotlib.pyplot as plt\n",
+    "from sklearn.feature_selection import SelectKBest, f_classif"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "df = pd.read_csv(\"HR_comma_sep.csv\")\n",
+    "df.head()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Impact of salary on employee retention**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "impact = df.groupby('salary')['left'].mean().reset_index()\n",
+    "sns.barplot(data=impact, x='salary', y='left')\n",
+    "plt.title(\"Impact of Salary on Employee retention\")\n",
+    "plt.ylabel(\"Proportion of Employees Who Left\")\n",
+    "plt.xlabel(\"Salary Level\")\n",
+    "plt.tight_layout()\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Department wise employee retention rate**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "dept_left = df.groupby('Department')['left'].mean().reset_index()\n",
+    "dept_left = dept_left.sort_values(by='left', ascending=False)\n",
+    "sns.barplot(data=dept_left, x='Department', y='left')\n",
+    "plt.xticks(rotation=45)\n",
+    "plt.title(\"Employee Retention Rate by Department\")\n",
+    "plt.ylabel(\"Proportion Who Left\")\n",
+    "plt.xlabel(\"Department\")\n",
+    "plt.tight_layout()\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Encoding categorical variables**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "le_dept = LabelEncoder()\n",
+    "le_salary = LabelEncoder()\n",
+    "df['Department'] = le_dept.fit_transform(df['Department'])\n",
+    "df['salary'] = le_salary.fit_transform(df['salary'])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Feature selection using SelectKBest (ANOVA F-value)**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "feature_names = [col for col in df.columns if col != 'left']\n",
+    "X = df[feature_names]\n",
+    "y = df['left']\n",
+    "\n",
+    "selector = SelectKBest(score_func=f_classif, k=5)\n",
+    "X_new = selector.fit_transform(X, y)\n",
+    "\n",
+    "selected_columns = X.columns[selector.get_support()]\n",
+    "print(selected_columns.tolist())"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Splitting data and feature scaling**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "X_1 = df[selected_columns]\n",
+    "X_train, X_test, y_train, y_test = train_test_split(X_1, y, test_size=0.2, random_state=42)\n",
+    "\n",
+    "scaler = StandardScaler()\n",
+    "X_tarin_scaled = scaler.fit_transform(X_train)\n",
+    "X_test_scaled = scaler.transform(X_test)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Train logistic regression model**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "LR = LogisticRegression(max_iter=2000)\n",
+    "LR.fit(X_tarin_scaled, y_train)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "**Evaluate model performance**"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "y_pred = LR.predict(X_test_scaled)\n",
+    "\n",
+    "acc = accuracy_score(y_test, y_pred)\n",
+    "print(f\"\\nAccuracy: {acc * 100:.2f}%\")"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "name": "python",
+   "version": ""
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
